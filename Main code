@@ -1,1 +1,170 @@
+const festivalData = {
+    movies: [{
+        id: 1,
+        title: "Inception",
+        director: "Christopher Nolan",
+        year: 2010,
+        mainGenre: "Sci-Fi",
+        secondGenre: undefined,
+        avgRating: 0,
+        available: true
+    }],
+    venues: [{
+        id: 1,
+        name: "Main Theater",
+        capacity: 200,
+    }],
+    screenings: [{
+        id: 1,
+        movieId: 1,
+        venueId: 1,
+        date: '2023-10-29',
+        time: '13:35:00',
+        availableSeats: 200
+    }],
+    tickets: new Set()
+};
 
+function manageFestival(actions, data) {
+    let results = [];
+
+    actions.forEach((action, index) => {
+        const currentData = data[index];
+
+        switch (action) {
+            case "listMovies":
+                results.push(festivalData.movies);
+                break;
+
+            case "listVenues":
+                results.push(festivalData.venues);
+                break;
+
+            case "listTickets":
+                results.push(festivalData.tickets);
+                break;
+
+            case "listScreenings":
+                results.push(festivalData.screenings);
+                break;
+
+            case "addMovie":
+                let newMovie = {
+                    id: festivalData.movies.length + 1,
+                    ...currentData,
+                    avgRating: 0,
+                    available: true
+                };
+                festivalData.movies.push(newMovie);
+                results.push("Movie added successfully!");
+                break;
+
+            case "addVenue":
+                let newVenue = {
+                    id: festivalData.venues.length + 1,
+                    ...currentData,
+                };
+                festivalData.venues.push(newVenue);
+                results.push("Venue added successfully!");
+                break;
+
+            case "addScreening":
+                const hasMovie = festivalData.movies.some(
+                    movie => movie.id === currentData.movieId
+                );
+
+                const actualVenue = festivalData.venues.find(
+                    venue => venue.id === currentData.venueId
+                );
+
+                if (!hasMovie || !actualVenue) {
+                    results.push("Movie or venue not found!");
+                    break;
+                }
+
+                const hasScreening = festivalData.screenings.some(
+                    screening =>
+                        screening.date === currentData.date &&
+                        screening.time === currentData.time
+                );
+
+                if (hasScreening) {
+                    results.push("Screening already exists at this time!");
+                    break;
+                }
+
+                const newScreening = {
+                    id: festivalData.screenings.length + 1,
+                    ...currentData,
+                    availableSeats: actualVenue.capacity
+                };
+
+                festivalData.screenings.push(newScreening);
+                results.push("Screening added successfully!");
+                break;
+
+            case "buyTicket":
+                const actualScreening = festivalData.screenings.find(
+                    screening => screening.id === currentData.screeningId
+                );
+
+                if (!actualScreening) {
+                    results.push("Screening not found!");
+                    break;
+                }
+
+                const availableSeats = actualScreening.availableSeats;
+
+                if (availableSeats < currentData.quantity) {
+                    results.push("Not enough seats available!");
+                    break;
+                }
+
+                for (let i = 0; i < currentData.quantity; i++) {
+                    festivalData.tickets.add(
+                        `${currentData.screeningId}-${actualScreening.availableSeats}`
+                    );
+
+                    actualScreening.availableSeats -= 1;
+                }
+
+                results.push("Tickets purchased successfully!");
+                break;
+
+            case "rateMovie":
+                const rating = currentData.avgRating;
+                if (rating < 1 || rating > 5) {
+                    results.push("Invalid rating! Must be between 1 and 5");
+                    break;
+                }
+
+                const movieToRate = festivalData.movies.find(movie => movie.id === currentData.movieId);
+                if (!movieToRate) {
+                    results.push("Movie not found!");
+                    break;
+                }
+
+                movieToRate.avgRating = rating;
+                results.push("Rating added successfully!");
+                break;
+
+            case "cancelScreening":
+                const currentScreening = festivalData.screenings.find(screening => screening.id === currentData.screeningId);
+                if (!currentScreening) {
+                    results.push("Screening not found!");
+                    break;
+                }
+                festivalData.screenings = festivalData.screenings.filter(screening => screening !== currentScreening);
+                for (const ticket of festivalData.tickets) {
+                    if (ticket[0] == currentData.screeningId) {
+                        festivalData.tickets.delete(ticket);
+                    }
+                }
+                results.push("Screening cancelled successfully!");
+                break;
+            default:
+                results.push("Invalid action!");
+        }
+    });
+    return results;
+}
